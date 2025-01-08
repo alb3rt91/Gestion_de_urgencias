@@ -1,8 +1,26 @@
 import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.Comparator;
+
+class Paciente {
+    int nuss;
+    int sintoma;
+    int exploracion;
+    int prioridad;
+    int temperatura;
+
+    Paciente(int nuss, int sintoma, int exploracion, int prioridad, int temperatura) {
+        this.nuss = nuss;
+        this.sintoma = sintoma;
+        this.exploracion = exploracion;
+        this.prioridad = prioridad;
+        this.temperatura = temperatura;
+    }
+}
 
 public class Main {
 
-    // Constantes para los límites de validación
+    private static final int MAX_ATTEMPTS = 3;
     private static final int NUSS_MIN = 100000;
     private static final int NUSS_MAX = 999999;
     private static final int SINTOMA_MIN = 0;
@@ -14,177 +32,153 @@ public class Main {
     private static final int TEMPERATURA_MIN = 27;
     private static final int TEMPERATURA_MAX = 45;
 
-    // Constantes de texto para los síntomas
-    private static final String SINTOMA_DOLOR = "Dolor";
-    private static final String SINTOMA_LESION = "Lesión traumática";
-    private static final String SINTOMA_FIEBRE = "Fiebre alta";
-    private static final String SINTOMA_CONFUSION = "Confusión o desorientación";
+    private static final String[] SINTOMAS = {"Dolor", "Lesión traumática", "Fiebre alta", "Confusión o desorientación"};
+    private static final String[][] EXPLORACIONES = {
+            {"Dolor torácico", "Dolor abdominal", "Dolor de cabeza", "Migraña"},
+            {"Fractura ósea", "Herida de bala", "Quemadura", "Lesión cerebral traumática"},
+            {"Neumonía", "Meningitis", "Infección viral", "Reacción alérgica"},
+            {"Intoxicación por drogas o alcohol", "Deshidratación severa", "Accidente cerebrovascular", "Hipoglucemia severa"}
+    };
 
-    // Constantes de texto para las exploraciones
-    private static final String[] EXPLORACION_DOLOR = {"Dolor torácico", "Dolor abdominal", "Dolor de cabeza", "Migraña"};
-    private static final String[] EXPLORACION_LESION = {"Fractura ósea", "Herida de bala", "Quemadura", "Lesión cerebral traumática"};
-    private static final String[] EXPLORACION_FIEBRE = {"Neumonía", "Meningitis", "Infección viral", "Reacción alérgica"};
-    private static final String[] EXPLORACION_CONFUSION = {"Intoxicación por drogas o alcohol", "Deshidratación severa", "Accidente cerebrovascular", "Hipoglucemia severa"};
+    private static ArrayList<Paciente> pacientes = new ArrayList<>();
 
     public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        boolean salir = false;
 
-        int nuss = obtenerNUSS(scanner);
-        int sintoma = obtenerSintoma(scanner);
-        int exploracion = obtenerExploracion(scanner, sintoma);
-        int prioridad = obtenerNivelPrioridad(scanner);
-        int temperatura = obtenerTemperatura(scanner);
+        while (!salir) {
+            System.out.println("\nGestión de Pacientes");
+            System.out.println("1. Añadir paciente");
+            System.out.println("2. Mostrar pacientes");
+            System.out.println("3. Modificar paciente");
+            System.out.println("4. Eliminar paciente");
+            System.out.println("5. Ordenar por prioridad");
+            System.out.println("6. Salir");
+            System.out.print("Seleccione una opción: ");
 
-        mostrarResumen(nuss, sintoma, exploracion, prioridad, temperatura);
-
+            int opcion = scanner.nextInt();
+            switch (opcion) {
+                case 1:
+                    añadirPaciente(scanner);
+                    break;
+                case 2:
+                    mostrarPacientes();
+                    break;
+                case 3:
+                    modificarPaciente(scanner);
+                    break;
+                case 4:
+                    eliminarPaciente(scanner);
+                    break;
+                case 5:
+                    ordenarPorPrioridad();
+                    break;
+                case 6:
+                    salir = true;
+                    break;
+                default:
+                    System.out.println("Opción no válida.");
+            }
+        }
         scanner.close();
     }
 
-    private static int obtenerNUSS(Scanner scanner) {
-        int nuss = -1;
-        while (true) {
-            System.out.print("NUSS?:");
-            if (scanner.hasNextInt()) {
-                nuss = scanner.nextInt();
-                if (nuss >= NUSS_MIN && nuss <= NUSS_MAX) {
-                    break;
-                } else {
-                    System.out.println("Error: El NUSS debe estar entre " + NUSS_MIN + " y " + NUSS_MAX + ".");
-                }
-            } else {
-                scanner.next();  // Descartar entrada no válida
-                System.out.println("Error: Introduce un número entero válido para el NUSS.");
+    private static void añadirPaciente(Scanner scanner) {
+        for (int i = 0; i < MAX_ATTEMPTS; i++) {
+            try {
+                int nuss = obtenerDato(scanner, "NUSS", NUSS_MIN, NUSS_MAX);
+                int sintoma = obtenerDato(scanner, "Síntoma (0: Dolor, 1: Lesión, 2: Fiebre, 3: Confusión)", SINTOMA_MIN, SINTOMA_MAX);
+                int exploracion = obtenerDato(scanner, "Exploración (0-3)", EXPLORACION_MIN, EXPLORACION_MAX);
+                int prioridad = obtenerDato(scanner, "Prioridad", PRIORIDAD_MIN, PRIORIDAD_MAX);
+                int temperatura = obtenerDato(scanner, "Temperatura", TEMPERATURA_MIN, TEMPERATURA_MAX);
+
+                pacientes.add(new Paciente(nuss, sintoma, exploracion, prioridad, temperatura));
+                System.out.println("Paciente añadido correctamente.");
+                return;
+            } catch (IllegalArgumentException e) {
+                System.out.println(e.getMessage() + " Intentos restantes: " + (MAX_ATTEMPTS - i - 1));
             }
         }
-        return nuss;
+        System.out.println("Se agotaron los intentos para añadir un paciente.");
     }
 
-    private static int obtenerSintoma(Scanner scanner) {
-        int sintoma = -1;
-        while (true) {
-            System.out.println("¿Sintoma?");
-            System.out.println("     " + SINTOMA_DOLOR + " (0)");
-            System.out.println("     " + SINTOMA_LESION + " (1)");
-            System.out.println("     " + SINTOMA_FIEBRE + " (2)");
-            System.out.println("     " + SINTOMA_CONFUSION + " (3)");
-            System.out.print(": ");
+    private static void mostrarPacientes() {
+        System.out.println("\nLISTADO DE PACIENTES:");
+        System.out.printf("%-7s | %-20s | %-25s | %-10s | %-10s\n", "NUSS", "Síntoma", "Exploración", "Prioridad", "Temperatura");
+        for (Paciente p : pacientes) {
+            System.out.printf("%-7d | %-20s | %-25s | %-10d | %-10d\n",
+                    p.nuss, SINTOMAS[p.sintoma], EXPLORACIONES[p.sintoma][p.exploracion], p.prioridad, p.temperatura);
+        }
+    }
 
-            if (scanner.hasNextInt()) {
-                sintoma = scanner.nextInt();
-                if (sintoma >= SINTOMA_MIN && sintoma <= SINTOMA_MAX) {
-                    break;
-                } else {
-                    System.out.println("Error: Selecciona un número entre " + SINTOMA_MIN + " y " + SINTOMA_MAX + ".");
-                }
-            } else {
-                scanner.next();
-                System.out.println("Error: Introduce un número entero válido para el síntoma.");
+    private static void modificarPaciente(Scanner scanner) {
+        if (pacientes.isEmpty()) {
+            System.out.println("No hay pacientes registrados para modificar.");
+            return;
+        }
+
+        System.out.print("Ingrese el NUSS del paciente a modificar: ");
+        int nuss = scanner.nextInt();
+        for (Paciente p : pacientes) {
+            if (p.nuss == nuss) {
+                System.out.println("Paciente encontrado. Modifique los campos (deje vacío para mantener el valor actual):");
+                p.nuss = obtenerDatoOpcional(scanner, "NUSS", NUSS_MIN, NUSS_MAX, p.nuss);
+                p.sintoma = obtenerDatoOpcional(scanner, "Síntoma (0: Dolor, 1: Lesión, 2: Fiebre, 3: Confusión)", SINTOMA_MIN, SINTOMA_MAX, p.sintoma);
+                p.exploracion = obtenerDatoOpcional(scanner, "Exploración (0-3)", EXPLORACION_MIN, EXPLORACION_MAX, p.exploracion);
+                p.prioridad = obtenerDatoOpcional(scanner, "Prioridad", PRIORIDAD_MIN, PRIORIDAD_MAX, p.prioridad);
+                p.temperatura = obtenerDatoOpcional(scanner, "Temperatura", TEMPERATURA_MIN, TEMPERATURA_MAX, p.temperatura);
+                System.out.println("Paciente modificado correctamente.");
+                return;
             }
         }
-        return sintoma;
+        System.out.println("Paciente con NUSS " + nuss + " no encontrado.");
     }
 
-    private static int obtenerExploracion(Scanner scanner, int sintoma) {
-        int exploracion = -1;
-        String[] opcionesExploracion = obtenerOpcionesExploracion(sintoma);
-        while (true) {
-            System.out.println("¿Exploración inicial?");
-            for (int i = 0; i < opcionesExploracion.length; i++) {
-                System.out.println("     " + opcionesExploracion[i] + " (" + i + ")");
+    private static void eliminarPaciente(Scanner scanner) {
+        if (pacientes.isEmpty()) {
+            System.out.println("No hay pacientes registrados para eliminar.");
+            return;
+        }
+
+        System.out.print("Ingrese el NUSS del paciente a eliminar: ");
+        int nuss = scanner.nextInt();
+        pacientes.removeIf(p -> p.nuss == nuss);
+        System.out.println("Paciente eliminado correctamente, si existía.");
+    }
+
+    private static void ordenarPorPrioridad() {
+        pacientes.sort(Comparator.comparingInt((Paciente p) -> p.prioridad).reversed());
+        System.out.println("Pacientes ordenados por prioridad de mayor a menor.");
+    }
+
+    private static int obtenerDato(Scanner scanner, String campo, int min, int max) throws IllegalArgumentException {
+        System.out.print(campo + " (" + min + "-" + max + "): ");
+        if (scanner.hasNextInt()) {
+            int valor = scanner.nextInt();
+            if (valor >= min && valor <= max) {
+                return valor;
             }
-            System.out.print(": ");
+        } else {
+            scanner.next();
+        }
+        throw new IllegalArgumentException("Entrada inválida para " + campo);
+    }
 
-            if (scanner.hasNextInt()) {
-                exploracion = scanner.nextInt();
-                if (exploracion >= EXPLORACION_MIN && exploracion <= EXPLORACION_MAX) {
-                    break;
-                } else {
-                    System.out.println("Error: Selecciona un número entre " + EXPLORACION_MIN + " y " + EXPLORACION_MAX + ".");
-                }
-            } else {
-                scanner.next();
-                System.out.println("Error: Introduce un número entero válido para la exploración.");
+    private static int obtenerDatoOpcional(Scanner scanner, String campo, int min, int max, int valorActual) {
+        System.out.print(campo + " (" + min + "-" + max + ") [Actual: " + valorActual + "]: ");
+        String input = scanner.next();
+        if (input.isEmpty()) {
+            return valorActual;
+        }
+        try {
+            int nuevoValor = Integer.parseInt(input);
+            if (nuevoValor >= min && nuevoValor <= max) {
+                return nuevoValor;
             }
+        } catch (NumberFormatException e) {
+            // Ignorar
         }
-        return exploracion;
-    }
-
-    private static String[] obtenerOpcionesExploracion(int sintoma) {
-        switch (sintoma) {
-            case 0: return EXPLORACION_DOLOR;
-            case 1: return EXPLORACION_LESION;
-            case 2: return EXPLORACION_FIEBRE;
-            case 3: return EXPLORACION_CONFUSION;
-            default: return new String[0];
-        }
-    }
-
-    private static int obtenerNivelPrioridad(Scanner scanner) {
-        int prioridad = -1;
-        while (true) {
-            System.out.print("¿Nivel de prioridad?(0-5): ");
-            if (scanner.hasNextInt()) {
-                prioridad = scanner.nextInt();
-                if (prioridad >= PRIORIDAD_MIN && prioridad <= PRIORIDAD_MAX) {
-                    break;
-                } else {
-                    System.out.println("Error: El nivel de prioridad debe estar entre " + PRIORIDAD_MIN + " y " + PRIORIDAD_MAX + ".");
-                }
-            } else {
-                scanner.next();
-                System.out.println("Error: Introduce un número entero válido para el nivel de prioridad.");
-            }
-        }
-        return prioridad;
-    }
-
-    private static int obtenerTemperatura(Scanner scanner) {
-        int temperatura = -1;
-        while (true) {
-            System.out.print("¿Temperatura actual?: ");
-            if (scanner.hasNextInt()) {
-                temperatura = scanner.nextInt();
-                if (temperatura >= TEMPERATURA_MIN && temperatura <= TEMPERATURA_MAX) {
-                    break;
-                } else {
-                    System.out.println("Error: La temperatura debe estar entre " + TEMPERATURA_MIN + " y " + TEMPERATURA_MAX + " grados.");
-                }
-            } else {
-                scanner.next();
-                System.out.println("Error: Introduce un número entero válido para la temperatura.");
-            }
-        }
-        return temperatura;
-    }
-
-    private static void mostrarResumen(int nuss, int sintoma, int exploracion, int prioridad, int temperatura) {
-        // Encabezado
-        System.out.println("NUSS   | Síntoma                | Exploración inicial            | Nivel de prioridad| Temperatura actual");
-
-        // Datos
-        System.out.printf("%-5d | %-22s | %-30s | %-17d | %-20d°C",
-                nuss,
-                obtenerDescripcionSintoma(sintoma),
-                obtenerDescripcionExploracion(sintoma, exploracion),
-                prioridad,
-                temperatura);
-    }
-
-    private static String obtenerDescripcionSintoma(int sintoma) {
-        switch (sintoma) {
-            case 0: return SINTOMA_DOLOR;
-            case 1: return SINTOMA_LESION;
-            case 2: return SINTOMA_FIEBRE;
-            case 3: return SINTOMA_CONFUSION;
-            default: return "Síntoma desconocido";
-        }
-    }
-
-    private static String obtenerDescripcionExploracion(int sintoma, int exploracion) {
-        String[] opcionesExploracion = obtenerOpcionesExploracion(sintoma);
-        if (exploracion >= 0 && exploracion < opcionesExploracion.length) {
-            return opcionesExploracion[exploracion];
-        }
-        return "Exploración desconocida";
+        System.out.println("Valor inválido. Se mantendrá el valor actual.");
+        return valorActual;
     }
 }
